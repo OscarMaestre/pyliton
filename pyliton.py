@@ -10,11 +10,11 @@ Usage: pyliton <filename>
 """
 
 
-REGEX_BLOCK_NAME="(?P<blockname>[a-zA-Z0-9 ]+)"
+REGEX_BLOCK_NAME="(?P<blockname>[a-zA-Z0-9\. ]+)"
 REGEX_DEFINE_BLOCK="^---"+REGEX_BLOCK_NAME+"---(?P<language>[a-zA-Z]*)"
 REGEX_DEFINE_END_BLOCK="^---$"
 
-REGEX_MACRO_TO_EXPAND="@\{"+REGEX_BLOCK_NAME+"\}"
+REGEX_MACRO_TO_EXPAND="(?P<spaces>\s*)\@\{"+REGEX_BLOCK_NAME+"\}"
 STATE_READING_LINES=0
 STATE_READING_BLOCK=STATE_READING_LINES+1
 
@@ -38,6 +38,8 @@ class Block(object):
         self.lines.append(line)
     def get_name(self):
         return self.name
+    def get_lines(self):
+        return self.lines
     def __str__(self):
         text=""
         text+="".join(self.lines)
@@ -77,15 +79,17 @@ def read_defined_blocks(lines):
     return blocks
 
 
-def get_text_from_list_of_blocks(block_name, defined_blocks):
+def get_text_from_list_of_blocks(block_name, defined_blocks, spaces_prefix):
     for b in defined_blocks:
         if b.get_name()==block_name:
-            return b.__str__()
+            block_lines=b.get_lines()
+            lines_with_prefix=[spaces_prefix+line for line in block_lines]
+            return "".join(lines_with_prefix)
     return "Undefined block:"+block_name
 
 def expand_blocks(lines, defined_blocks):
     result_text=""
-    re_expand_block         =   re.compile(REGEX_DEFINE_BLOCK)
+    re_expand_block         =   re.compile(REGEX_MACRO_TO_EXPAND)
     counter=0
     max_lines=len(lines)
     
@@ -93,12 +97,15 @@ def expand_blocks(lines, defined_blocks):
         current_line=lines[counter]
         result=re_expand_block.match(current_line)
         if result!=None:
+            spaces_prefix=result.group("spaces")
             block_name=result.group("blockname")
-            print("Expandiendo:"+block_name)
-            expanded_text=get_text_from_list_of_blocks(block_name, defined_blocks)
+            
+            expanded_text=get_text_from_list_of_blocks(block_name, defined_blocks, spaces_prefix)
+            #print("Resultado expandido:"+expanded_text + " a partir de la macro:"+block_name)
             result_text=result_text+expanded_text
             counter=counter+1
         else:
+            #print("Linea              :"+current_line)
             result_text=result_text+current_line
         counter=counter+1
     #End of while
@@ -109,8 +116,10 @@ def pyliton(filename):
     with open(filename) as file:
         lines=file.readlines()
         defined_blocks=read_defined_blocks(lines)
+        first_block=defined_blocks[0]
         
-        text=expand_blocks(lines, defined_blocks)
+        blocklines=first_block.get_lines()
+        text=expand_blocks(blocklines, defined_blocks)
         print("Expanded")
         print (text)
 
