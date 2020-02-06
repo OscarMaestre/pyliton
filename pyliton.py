@@ -62,7 +62,7 @@ def read_defined_blocks(lines):
             counter=counter+1
             continue
         result=re_define_end_block.match(current_line)
-        if result!=None:
+        if result!=None and state.get_state()==STATE_READING_BLOCK:
             state.to_reading_lines_mode()
             blocks.append(current_block)
             current_block=None
@@ -75,10 +75,11 @@ def read_defined_blocks(lines):
     return blocks
 
 def pyliton(filename):
-    print(filename)
+    #print(filename)
     with open(filename) as file:
         lines=file.readlines()
         defined_blocks=read_defined_blocks(lines)
+        print("Blocks")
         for b in defined_blocks:
             print(b)
         
