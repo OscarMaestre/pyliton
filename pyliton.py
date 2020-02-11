@@ -87,6 +87,31 @@ def get_text_from_list_of_blocks(block_name, defined_blocks, spaces_prefix):
             return "".join(lines_with_prefix)
     return "Undefined block:"+block_name
 
+
+def get_block(block_name, defined_blocks):
+    for b in defined_blocks:
+        if b.get_name()==block_name:
+            return b
+    return None
+
+def expand_block(block, defined_blocks):
+    result_lines=[]
+    re_expand_block         =   re.compile(REGEX_MACRO_TO_EXPAND)
+    lines=block.get_lines()
+    for l in lines:
+        result=re_expand_block.match(l)
+        if result!=None:
+            spaces_prefix=result.group("spaces")
+            block_name=result.group("blockname")
+            block_object=get_block(block_name, defined_blocks)
+            lines_in_nested_block=expand_block(block_object, defined_blocks)
+            lines_with_prefix=[spaces_prefix+line for line in lines_in_nested_block]
+            result_lines.extend(lines_with_prefix)
+        if result==None:
+            result_lines.append(l)
+    #end for
+    return result_lines
+
 def expand_blocks(lines, defined_blocks):
     result_text=""
     re_expand_block         =   re.compile(REGEX_MACRO_TO_EXPAND)
@@ -119,9 +144,12 @@ def pyliton(filename):
         first_block=defined_blocks[0]
         
         blocklines=first_block.get_lines()
-        text=expand_blocks(blocklines, defined_blocks)
-        print("Expanded")
-        print (text)
+        #text=expand_blocks(blocklines, defined_blocks)
+        result_lines=expand_block(first_block, defined_blocks)
+        #print(result_lines)
+        final_text="".join(result_lines)
+        print(final_text)
+        
 
 if __name__ == "__main__":
     if len(sys.argv)!=2:
