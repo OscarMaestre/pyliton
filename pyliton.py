@@ -136,20 +136,61 @@ def expand_blocks(lines, defined_blocks):
     #End of while
     return result_text
 
+def generate_program_file(filename, lines):
+    defined_blocks=read_defined_blocks(lines)
+    first_block=defined_blocks[0]
+    
+    blocklines=first_block.get_lines()
+    #text=expand_blocks(blocklines, defined_blocks)
+    result_lines=expand_block(first_block, defined_blocks)
+    
+
+    result_text="".join(result_lines)
+    with open(filename+".out", "w") as file:
+        file.write(result_text)
+    return result_lines
+
+    return final_text
+
+
+def generate_sphinx_file(filename, lines):
+    re_define_block         =   re.compile(REGEX_DEFINE_BLOCK)
+    re_define_end_block     =   re.compile(REGEX_DEFINE_END_BLOCK)
+
+    state=State()
+
+    result_lines=[]
+    
+    for l in lines:
+        
+        result=re_define_block.match(l)
+        if result!=None:        
+            result_lines.append(".. code-block:: \n\n")
+            state.to_reading_block_mode()
+            continue
+        result=re_define_end_block.match(l)
+        if result!=None and state.get_state()==STATE_READING_BLOCK:
+            result_lines.append("\n")
+            state.to_reading_lines_mode()
+            continue
+        if state.get_state()==STATE_READING_BLOCK:
+            result_lines.append("\t"+l)
+        if state.get_state()==STATE_READING_LINES:
+            result_lines.append(l)
+
+    #End of while
+    #print ()
+    result_text="".join(result_lines)
+    with open(filename+".rst", "w") as file:
+        file.write(result_text)
+    return result_lines
+
 def pyliton(filename):
     #print(filename)
     with open(filename) as file:
         lines=file.readlines()
-        defined_blocks=read_defined_blocks(lines)
-        first_block=defined_blocks[0]
-        
-        blocklines=first_block.get_lines()
-        #text=expand_blocks(blocklines, defined_blocks)
-        result_lines=expand_block(first_block, defined_blocks)
-        #print(result_lines)
-        final_text="".join(result_lines)
-        print(final_text)
-        
+        generate_program_file(filename, lines)    
+        generate_sphinx_file(filename, lines)    
 
 if __name__ == "__main__":
     if len(sys.argv)!=2:
